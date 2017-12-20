@@ -1,7 +1,7 @@
 # RealmTraining
 Training for the Realm Object Server
 
-```This tutorial will guide you through writing an iOS app using Realm Swift to sync with the RealmTasks demo apps.
+This tutorial will guide you through writing an iOS app using Realm Swift to sync with the RealmTasks demo apps.
 
 In order to successfully complete this tutorial you will need a Macintosh running macOS 10.12 or later, as well as a copy of Xcode 9.2
 
