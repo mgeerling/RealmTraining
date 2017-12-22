@@ -1,6 +1,3 @@
-# RealmTraining
-Training for the Realm Object Server
-
 This tutorial will guide you through writing an iOS app using Realm Swift to sync with the RealmTasks demo apps.
 
 In order to successfully complete this tutorial you will need a Macintosh running macOS 10.12 or later, as well as a copy of Xcode 9.2
@@ -37,9 +34,9 @@ In this section we set up the Cocoapod dependency manager and add Realm's Swift 
 
 Quit Xcode
 
-Open a Terminal window and change to the directory/folder where you created the Xcode RealmTasksTutorialproject
+Open a Terminal window and change to the directory/folder where you created the Xcode project
 
-If you have not already done so, install the Cocoapods system
+If you have not already done so, install the Cocoapods system 
 
 Full details are available via the Cocopods site, but the simplest instructions are to type sudo gem install cocoapods in a terminal window
 
@@ -56,13 +53,18 @@ Save the file
 At the terminal, type pod install - this will cause the Cocoapods system to fetch the RealmSwift and RealmLoginKit modules, as well as create a new Xcode workspace file which enabled these modules to be used in this project.
 
 3. Setting up the Application Delegate
-In this seciton we will configure the applicaiton degelgate to support a Navigation controller. From the Project Navigator, double-clock the AppDelegate.swift file and edit the file to replace the func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions method with the following:
+Reopen Xcode, but rather than open xcodeproj use the newly created xcworkspace file; this was created by the Cocoapods dependency manager and should be used going forward
 
+If you have not already, open the xcworkspace with Xcode.
+
+In this section we will configure the application delegate to support a Navigation controller. From the Project Navigator, double-clock the AppDelegate.swift file and edit the file to replace the AppDelegate class with the following:
+
+@UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions:[UIApplicationLaunchOptionsKey : Any]? = nil) -> Bool {
         window = UIWindow(frame: UIScreen.main.bounds)
-        window?.rootViewController = UINavigationController(rootViewController: UIViewController())
+        window?.rootViewController = UINavigationController(rootViewController: TasksLoginViewController())
         window?.makeKeyAndVisible()
         return true
     }
@@ -70,172 +72,76 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 4. Setting Up the Storyboard & Views
 In this section we will set up our login and main view controller's storyboard connections.
 
-Reopen Xcode, but rather than open MultiUserRealmTasksTutorial.xcodeproj use the newly created MultiUserRealmTasksTutorial.xcworkspace file; this was created by the Cocoapods dependency manager and should be used going forward
-
-If you have not already, open the MultiUserRealmTasksTutorial.xcworkspace with Xcode.
-
 In the Xcode project navigator select the main.storyboard file. Interface builder (IB) will open and show the default single view layout:
 
 
 
+ 
 
 
 
-Adding the TableViewController - on the lower right of the window is the object browser, type "tableview" to narrow down the possible IB objects. There will be a "TableView Controller" object visible. Drag this onto the canvas. Once you have done this the Storyboard view will resemble this:
+2. Adding the TableViewController - on the lower right of the window is the object browser, type "tableview" to narrow down the possible IB objects. There will be a "TableView Controller" object visible. Drag this onto the canvas. Once you have done this the Storyboard view will resemble this:
 
 
 
+ 
 
 
 
-Once you have added the second view controller, you will need to connect the two controllers by a pair of segues, as well as add class names/storyboard IDs for each controller to prepare for the code will be adding in the next sections:
+Once you have added the second view controller, you will need to add class names/storyboard IDs for each controller to prepare for the code will be adding in the next sections:
 
-Open the storyboard property viewer to see the outline view of the contents of both controllers in the storyboard.
+Open the storyboard propery viewer to see the ourline view of the contents of both controllers in the sotoryboard. Then, control-drag from the TasksLoginViewController label to the Table View Controller label and select "show" when the popup menu appears.
 
-You will need to set the class names for each of the view controller objects. To do this select the controllers one at a time, and for the LoginView Controller, set the class name to TasksLoginViewController and to the storyboard id to loginView. For the new TableViewController you added, set the class name to TasksTableViewController and here set the storyboard id to tasksView
+You will need to set the class names for each of the view controller objects. To do this select the controllers one at a time, and for the LoginView Controller, set the class name to TasksLoginViewController and to the storyboard id to loginView. For the new TableViewController you added, set the class name to TasksTableViewController and here set the storyboard id to tasksView.
 
-Then, control-drag from the TasksLoginViewController label to the TasksTableViewController label and select "show" when the popup menu appears. Select the segue that is created between the two controllers, and set the name of the segue in the property view on the right side to loginToTasksViewSegue
-
-Do the same from the TasksLoginViewController back to the TasksLoginViewController. Here, again, tap the newly created segue (it will be the diagonal line) and name this segue tasksViewToLoginControllerSegue
-
-
-
-The final configfuration will look like this:
-
-
-
-
-
-
-5. Configuring the Login View Controller
-In this section we will rename and then configure the TasksLoginViewController that will allow you to log in an existing user account, or create a new account
-
-Open the ViewController.swift file in the project navigator. Click once on it to enable editing of the file name; change the name to TasksLoginViewController and press return to rename the file.
-
-Clicking on the filename should also have opened the newly renamed file in the editor. Here too you should replace all references to ViewController in the comments and class name with TasksLoginViewController
-
-Next, we are going to update the contents of this view controller and take it from a generic, empty controller to one that can display our Login Panel.
-
-Start by modifying the imports to read as follows:
-
-import UIKit
-import RealmSwift
-import RealmLoginKit
-Modify the top of the class file so the following properties are declared:
-
-class TasksLoginViewController: UITableViewController {
-var loginViewController: LoginViewController!
-var token: NotificationToken!
-var myIdentity = SyncUser.current?.identity!
-Next, modify the empty viewWillAppear method to look like this:
-
- override func viewDidAppear(_ animated: Bool) {
-     loginViewController = LoginViewController(style: .lightOpaque)
-     loginViewController.isServerURLFieldHidden = false
-     loginViewController.isRegistering = true
-
-     if (SyncUser.current != nil) {
-         // yup - we've got a stored session, so just go right to the UITabView
-         Realm.Configuration.defaultConfiguration = commonRealmConfig(user: SyncUser.current!)
-
-         performSegue(withIdentifier: Constants.kLoginToMainView, sender: self)
-     } else {
-         // show the RealmLoginKit controller
-         if loginViewController!.serverURL == nil {
-             loginViewController!.serverURL = Constants.syncAuthURL.absoluteString
-         }
-         // Set a closure that will be called on successful login
-         loginViewController.loginSuccessfulHandler = { user in
-             DispatchQueue.main.async {
-                 // this AsyncOpen call will open the described Realm and wait for it to download before calling its closure
-                 Realm.asyncOpen(configuration: commonRealmConfig(user: SyncUser.current!)) { realm, error in
-                     if let realm = realm {
-                         Realm.Configuration.defaultConfiguration = commonRealmConfig(user: SyncUser.current!)
-                         self.loginViewController!.dismiss(animated: true, completion: nil)
-                         self.performSegue(withIdentifier: Constants.kLoginToMainView, sender: nil)
-
-                     } else if let error = error {
-                         print("An error occurred while logging in: \(error.localizedDescription)")
-                     }
-                 } // of asyncOpen()
-
-             } // of main queue dispatch
-         }// of login controller
-
-         present(loginViewController, animated: true, completion: nil)
-     }
- }
-Optionally, commit your progress in source control.
-
-Your app should now build and run---although so far it doesn't do much, it will show you to login panel you just configured:
-
-
-
-
-
-
-Click the stop button to terminate the app, and we will continue with the rest of the changes needed to create our Realm Tasks app.
-
-6. Create the Models and Constants Class File
+5. Create the Models and Constants Class File
 In this step we are going to create a few constants to help us manage our Realm as well as the class models our Realm will operate on.
 
-From the Project Navigator, right click and select New File and when the file selector appears select Swift Fileand name the file ConstantsAndModels and press return. Xcode will create a new Swift file and open it in the editor.
+From the Project Navigator, right click and select New File and when the file selector apprears select Swift Fileand name the file ConstantsAndModels and press return. Xcode will create a new Swift file and open it in the editor.
 
-Our first task will be to create some constants that will make opening and working with Realms easier, then we will define the Task models. To do this add the following code to the file
-
-Let's start with the Constants, add the following to the file:
+Let's start with the Constants; add the following to the file:
 
 import Foundation
 import RealmSwift
-struct Constants {
-    // segue names
-    static let      kLoginToMainView                = "loginToTasksViewSegue"
-    static let      kExitToLoginViewSegue           = "tasksToLoginViewSegue"
 
+struct Constants {
 
     // the host that will do the synch - if oure using the Mac dev kit you probably want this to be localhost/127.0.0.1
     // if you are using the Professional or Enterprise Editions, then this will be a host on the Internet
     static let defaultSyncHost                      = "127.0.0.1"
-
+    
     // this is purely for talking to the RMP auth system
     static let syncAuthURL                          = URL(string: "http://\(defaultSyncHost):9080")!
-
+    
     // The following URLs and URI fragments are about talking to the synchronization service and the Realms
     // it manages on behalf of your application:
     static let syncServerURL                        = URL(string: "realm://\(defaultSyncHost):9080/")
-
+    
     // Note: When we say Realm file we mean literally the entire collection of models/schemas inside that Realm...
     // So we need to be very clear what models that are represented by a given Realm.  For example:
-
+    
     // this is a realm where we can store profile info - not covered in the main line of this tutorial
     static let commonRealmURL                       = URL(string: "realm://\(defaultSyncHost):9080/CommonRealm")!
-
+    
     // Note: If Swift supported C-style macros, we could simply define the configuration for the tasks Realm like this:
     //
-    //static let commonRealmConfig                    = Realm.Configuration(syncConfiguration: SyncConfiguration(user: SyncUser.current!, realmURL: commonRealmURL),objectTypes: [Person.self])
-    // However the key bit of information the Realm config needs is which user (e.g., SyncUser) it's being configured with.  As a static
-    // this would get set only once at app launch time -- so if your initial user logs out and someone else tries to log in, the
-    // configuration would still be using the SyncUser.currrent value obtained at launch. So, instead we'll use the function below which
-    // obtains the SyncUser dyanamically.  This same logic appplies to other Realm configs like tasksRealmConfig too.
-
+    
     //  this is a task Realm comptible with the fully version of RealmTasks for iOS/Android/C#
     static let tasksRealmURL                       = URL(string: "realm://\(defaultSyncHost):9080/~/realmtasks")!
-
+    
     //  static let tasksRealmConfig                    = Realm.Configuration(syncConfiguration: SyncConfiguration(user: SyncUser.current!, realmURL:    tasksRealmURL),objectTypes: [TaskList.self, Task.self])
 }
 
-func commonRealmConfig(user: SyncUser) -> Realm.Configuration  {
-    let config = Realm.Configuration(syncConfiguration: SyncConfiguration(user: SyncUser.current!, realmURL: Constants.commonRealmURL), objectTypes: [Person.self])
+func tasksRealmConfig(user: SyncUser) -> Realm.Configuration  {
+    let config = Realm.Configuration(syncConfiguration: SyncConfiguration(user: SyncUser.current!, realmURL: Constants.tasksRealmURL), objectTypes: [TaskList.self, Task.self])
     return config
 }
 
-func tasksRealmConfig(user: SyncUser) -> Realm.Configuration  {
-    let config = Realm.Configuration(syncConfiguration: SyncConfiguration(user: SyncUser.current!, realmURL: Constants.commonRealmURL), objectTypes: [TaskList.self, Task.self])
-    return config
-}
+
 There key things to note here are how the contents are layered together to create a set of accessors that allow you to quickly and easily create references to a Realm. This example shows a single Realm but in more complex projects one could imagine having a number of such accessors created for a number of special purpose Realms.
 
 Next, we'll add the definitions of our models. Note that there are two kinds of models here: the Task and taskList models.
+
 
 // MARK: Model
 
@@ -252,65 +158,103 @@ final class TaskList: Object {
 final class Task: Object {
     @objc dynamic var text = ""
     @objc dynamic var completed = false
+    @objc dynamic var duedate: Date?
 }
 
-class Person : Object {
-    @objc dynamic var id = ""
-    @objc dynamic var creationDate: Date?
-    @objc dynamic var lastUpdated: Date?
-    
-    @objc dynamic var lastName = ""
-    @objc dynamic var firstName = ""
-    
-    
-    override static func primaryKey() -> String? {
-        return "id"
-    }
-    
-    func fullName() -> String {
-        return "\(firstName) \(lastName)"
-    }
-    
-    
-    
-    class func createProfile() -> Person? {
-        let commomRealm =  try! Realm(configuration: commonRealmConfig(user: SyncUser.current!))
-        var profileRecord = commomRealm.objects(Person.self).filter(NSPredicate(format: "id = %@", SyncUser.current!.identity!)).first
-        if profileRecord == nil {
-            try! commomRealm.write {
-                profileRecord = commomRealm.create(Person.self, value:["id": SyncUser.current!.identity!, "creationDate": Date(),  "lastUpdated": Date()])
-                commomRealm.add(profileRecord!, update: true)
-            }
-        }
-        return profileRecord
-    }
-} // of Person
 At this point, we've created a login system, and defined the data models (Task and TaskList) that we'll use to represent our data and sync with the RealmTasks apps.
 
-Your app should still build and run.
+6. Configuring the Login View Controller
+In this section we will rename and then configure the TasksLoginViewController that will allow you to log in an existing user account, or create a new account
 
+Open the ViewController.swift file in the project navigator. Click once on it to enable editing of the file name; change the name to TasksLoginViewController and press return to rename the file.
+
+Clicking on the filename should also have opened the newly renamed file in the editor. Here too you should replace all references to ViewController in the comments and class name with TasksLoginViewController
+
+Next, we are going to update the contents of this view controller and take it from a generic, empty controller to one that can display our Login Panel.
+
+Start by modifying the imports to read as follows:
+
+import UIKit
+import RealmSwift
+import RealmLoginKit
+Modify the top of the class file so the following properties are declared:
+
+
+class TasksLoginViewController: UITableViewController {
+var loginViewController: LoginViewController!
+var token: NotificationToken!
+var myIdentity = SyncUser.current?.identity!
+
+Next, create the viewWillAppear method to
+
+       override func viewDidAppear(_ animated: Bool) {
+       loginViewController = LoginViewController(style: .lightOpaque)
+       loginViewController.isServerURLFieldHidden = false
+       loginViewController.isRegistering = true
+       
+       if (SyncUser.current != nil) {
+           // yup - we've got a stored session, so just go right to the UITabView
+           Realm.Configuration.defaultConfiguration = tasksRealmConfig(user: SyncUser.current!)
+           
+           self.navigationController?.setViewControllers([TasksTableViewController()], animated: true)
+           self.loginViewController!.dismiss(animated: true, completion: nil)
+       } else {
+           // show the RealmLoginKit controller
+           if loginViewController!.serverURL == nil {
+               loginViewController!.serverURL = Constants.syncAuthURL.absoluteString
+           }
+           // Set a closure that will be called on successful login
+           loginViewController.loginSuccessfulHandler = { user in
+               DispatchQueue.main.async {
+                   // this AsyncOpen call will open the described Realm and wait for it to download before calling its closure
+                   Realm.asyncOpen(configuration: tasksRealmConfig(user: SyncUser.current!)) { realm, error in
+                       if realm != nil {
+                           Realm.Configuration.defaultConfiguration = tasksRealmConfig(user: SyncUser.current!)
+
+                           //self.loginViewController!.dismiss(animated: true, completion: nil)
+                           
+                           // let's instantiate the nexty view controller...
+                           let tasklistVC = TasksTableViewController()
+                           tasklistVC.realm = realm //  and set up its realm reference (since have it).
+                           
+                           // then we can set the nav controller to use this view and then dismiss the login view
+                           self.navigationController?.setViewControllers([tasklistVC], animated: true)
+                           self.loginViewController!.dismiss(animated: true, completion: nil)
+                           
+                       } else if let error = error {
+                           print("An error occurred while logging in: \(error.localizedDescription)")
+                       }
+                   } // of asyncOpen()
+                   
+               } // of main queue dispatch
+           }// of login controller
+           
+           present(loginViewController, animated: true, completion: nil)
+       }
+} 
 7. The TaskList Controller: Add a title and register a cell class for use with our table view
-In this section we will create and configure our `TasksTableViewController`
+In this section we will create and configure our TasksTableViewController
 
-In the project navigator, right-click on the MultiUserRealmTasksTutorial group and select new file agin. This time you will select a "Cocoa Touch" class, then press "Next" For the class section you want to enter TasksTableViewController which is the name you entered when you created and configured the view controller in the storyboard; for Subclass of you want to enter `UITableViewController` (typing the first few characters will cause Xcode to help with autocompletion suggestions).
+Create a new file agin. This time you will select a "Cocoa Touch" class, then press "Next" For the class section you want to enter TasksTableViewController which is the name you entered when you created and configured the view controller in the storyboard; for Subclass of you want to enter `UITableViewController` (typing the first few characters will cause Xcode to help with autocompletion suggestions).
 
 
 
+ 
 
 
 
 The language should be set to "Swift. Click "next" and save the file alond side the other files in this project.
 
-Xcode will open the file and we can now start configuring this view controller by replacing or editing the methods as indicated below:
-
-Use a Realm List to references Tasks in the table view:
-
-Add the following property to your ViewController class, on a new line, right after the class declaration:
-
-You will also need:
+Xcode will open the file and we can now start by adding Realm to our import statement
 
 import RealmSwift
-var items = List<Task>()
+Add the following property to your TasksTableViewController class, on a new line, right after the class declaration:
+
+    var realm:          Realm!
+    var items:          List<Task>?         // all of the tasks
+    var myTaskLists:    Results<TaskList>?  // all tasks lists
+    var currentTaskList: TaskList?          // the current list we're watching
+    var notificationToken: NotificationToken!
 Next, we'll have a method that configures the Table View when the controller loads. Edit the ViewDidLoad method as follows:
 
 override func viewDidLoad() {
@@ -318,18 +262,12 @@ override func viewDidLoad() {
     setupUI()
 }
 
-    func setupUI() {
-        self.title = "My Tasks"
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
-    }
 
-Add the following line to the end of your viewDidLoad() function to seed the list with some initial data:
-
-override func viewDidLoad() {
-    // ... existing function ...
-    items.append(Task(value: ["text": "My First Task"]))
+func setupUI() {  
+    self.title = "My Tasks"
+    tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
 }
-Append the following to the end of your ViewController class's body:
+Append the following to the end of your TasksTableViewController class's body:
 
 // MARK: Turn off the staus bar
 
@@ -340,133 +278,145 @@ open override var prefersStatusBarHidden : Bool {
 
 // MARK: UITableView
 
-override func tableView(_ tableView: UITableView?, numberOfRowsInSection section: Int) -> Int {
-    return items.count
-}
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+         return self.items!.count
+    }
 
-override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-    let item = items[indexPath.row]
-    cell.textLabel?.text = item.text
-    cell.textLabel?.alpha = item.completed ? 0.5 : 1
-    return cell
-}
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        let item = self.items![indexPath.row]
+        cell.textLabel?.text = item.text
+        cell.textLabel?.alpha = item.completed ? 0.5 : 1
+        print("working on cell for row: \(indexPath.row), text is \"\(item.text)\"")
+        return cell
+    }
 If you then build and run the app, you'll see your one task being displayed in the table. There's also some code in here to show completed items as a little lighter than uncompleted items, but we won't see that in action until later.
 
+Now lets add support for Realm:
+
+func setupRealm() {
+        // Open the Realm, if necessary - it's probably been passed in to us
+        // by the login mechanism which did an realm.asyncOpen()
+        if self.realm == nil {
+            self.realm = try! Realm(configuration: tasksRealmConfig(user: SyncUser.current!))
+        }
+        
+        // Next, let's get all of our task lists, and then we'll set the default to the first one
+        // (of course if there are not, in fact, any taks lists, we'll make one)
+        self.myTaskLists = self.realm.objects(TaskList.self)
+        if self.myTaskLists!.count > 0 {
+            self.currentTaskList = self.myTaskLists!.first
+        } else {
+            try! realm.write {
+                let initialValues = ["id": NSUUID().uuidString, "text": "My First Task List"]
+                let newTaskList = realm.create(TaskList.self, value: initialValues)
+                self.currentTaskList = newTaskList
+                
+                let values =  ["text": "My First Task"]
+                let newTask = realm.create(Task.self, value: values)
+                realm.add(newTask) // add the new tasks
+                self.currentTaskList?.items.append(newTask) // and add it to our default list
+            }
+        }
+        
+        // Now, get all of our tasks, if any.  On return, we'll check to see if the list is empty
+        // and make a prototype 1st task for the user so they're not looking ast a blank screen.
+        self.items = self.currentTaskList?.items // NB: this will return an empty list if there are no tasks
+        
+        // and, finally, let's listen for changes to the task items
+        self.notificationToken = self.setupNotifications()
+
+    }// of setupRealm
+You may have noticed that this code will not run without the setupNotifications function, let's add that here:
+
+    func setupNotifications() -> NotificationToken? {
+        return self.currentTaskList?.items.observe { [weak self] (changes: RealmCollectionChange) in
+            guard let tableView = self?.tableView else { return }
+            switch changes {
+            case .initial:
+                // Results are now populated and can be accessed without blocking the UI
+                tableView.reloadData()
+            case .update(_, let deletions, let insertions, let modifications):
+                // Query results have changed, so apply them to the UITableView
+                tableView.beginUpdates()
+                tableView.insertRows(at: insertions.map({ IndexPath(row: $0, section: 0) }),
+                                     with: .automatic)
+                tableView.deleteRows(at: deletions.map({ IndexPath(row: $0, section: 0)}),
+                                     with: .automatic)
+                tableView.reloadRows(at: modifications.map({ IndexPath(row: $0, section: 0) }),
+                                     with: .automatic)
+                tableView.endUpdates()
+            case .error(let error):
+                // An error occurred while opening the Realm file on the background worker thread
+                fatalError("\(error)")
+            }
+        }
+    } // of setupNotifications
+It is also important to de-initialize once the class is deallocated:    
+
+    deinit {
+        notificationToken?.invalidate()
+    }
 8. Add support for creating new tasks
-Delete the line in your viewDidLoad() function that seeded initial data
-
-DELETE
-
-override func viewDidLoad() {
-    // -- DELETE THE FOLLOWING LINE --
-    items.append(Task(value: ["text": "My First Task"]))
-}
-Add the following function to your ViewController class at its end:
+Add the following function to your TasksTableViewController class at its end:
 
 // MARK: Functions
 
-func add() {
-    let alertController = UIAlertController(title: "New Task", message: "Enter Task Name", preferredStyle: .alert)
-    var alertTextField: UITextField!
-    alertController.addTextField { textField in
-        alertTextField = textField
-        textField.placeholder = "Task Name"
+    @objc func add() {
+        let alertController = UIAlertController(title: "New Task", message: "Enter Task Name", preferredStyle: .alert)
+        var alertTextField: UITextField!
+        alertController.addTextField { textField in
+            alertTextField = textField
+            textField.placeholder = "Task Name"
+        }
+        alertController.addAction(UIAlertAction(title: "Add", style: .default) { _ in
+            guard let text = alertTextField.text , !text.isEmpty else { return }
+            
+            let items = self.items
+            try! items?.realm?.write {
+                items!.insert(Task(value: ["text": text]), at: items!.filter("completed = false").count)
+            }
+        })
+        present(alertController, animated: true, completion: nil)
     }
-    alertController.addAction(UIAlertAction(title: "Add", style: .default) { _ in
-        guard let text = alertTextField.text , !text.isEmpty else { return }
-
-        self.items.append(Task(value: ["text": text]))
-        self.tableView.reloadData()
-    })
-    present(alertController, animated: true, completion: nil)
-}
-Now add the following line at the end of the setupUI() function:
+Now add the following to the setupUI() function so it looks as follows:
 
 func setupUI() {
-    // ... existing function ...
+        title = "My Tasks"
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        
+        let addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(add))
+        let logoutButton = UIBarButtonItem(title: NSLocalizedString("Logout", comment:"logout"), style: UIBarButtonItemStyle.plain, target: self, action: #selector(handleLogout))
+        
+        self.navigationItem.rightBarButtonItems = [addButton, logoutButton]
+        self.navigationItem.leftBarButtonItem = editButtonItem
 
-    // we don't have a UINavigationController so let's add a hand-constructed UINavBar
-    let screenSize: CGRect = UIScreen.main.bounds
-    let navBar = UINavigationBar(frame: CGRect(x: 0, y: 0, width: screenSize.width, height: 44))
-    let navItem = UINavigationItem(title: "")
-    let addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(add))
-    let logoutButton = UIBarButtonItem(title: NSLocalizedString("Logout", comment:"logout"), style: UIBarButtonItemStyle.plain, target: self, action: #selector(handleLogout))
-    navItem.leftBarButtonItem = editButtonItem
-    navBar.setItems([navItem], animated: false)
-
-    self.view.addSubview(navBar)
-}
-9. Back items by a Realm and integrate sync
-Now, add the following properties to your ViewController class, just under the items property:
-
-var notificationToken: NotificationToken!
-var realm: Realm!
-The notification token we just added will be needed when we start observing changes from the Realm.
-
-Right after the end of the setupUI() function, add the following:
-
-deinit {
-    notificationToken.stop()
-}
-/// DELETE??? Needed??? In the code above, enter the same values for the username and password variables as you used when registering a user through the RealmTasks app in the "Getting Started" steps.
-
-Then insert the following at the end of the setupRealm() function (inside the function body):
-
-func setupRealm() {
-    DispatchQueue.main.async {
-        // Open Realm
-        self.realm = try! Realm(configuration: tasksRealmConfig(user: SyncUser.current!))
-
-        // Show initial tasks
-        func updateList() {
-            if self.items.realm == nil, let list = self.realm.objects(TaskList.self).first {
-                self.items = list.items
-            }
-            self.tableView.reloadData()
-        }
-        updateList()
-
-        // Notify us when Realm changes
-        self.notificationToken = self.realm.addNotificationBlock { _ in
-            updateList()
-        }
-    } // of Dispatch...main
-}// of setupRealm
-And, call this setup function at the end of the viewDidLoad() function:
-
-override func viewDidLoad() {
-    // ... existing function ...
-    setupRealm()
-}
-
-
-
-
-DELETE PREVIOUS??
-
-Now edit the add() function to look like this:
-
-func add() {
-    let alertController = UIAlertController(title: "New Task", message: "Enter Task Name", preferredStyle: .alert)
-    var alertTextField: UITextField!
-    alertController.addTextField { textField in
-        alertTextField = textField
-        textField.placeholder = "Task Name"
     }
-    alertController.addAction(UIAlertAction(title: "Add", style: .default) { _ in
-        guard let text = alertTextField.text , !text.isEmpty else { return }
+Now lets add the logout functionality: 
 
-        let items = self.items
-        try! items.realm?.write {
-            items.insert(Task(value: ["text": text]), at: items.filter("completed = false").count)
+    // Logout Support
+    
+    
+    @IBAction  func handleLogout(sender:AnyObject?) {
+        let alert = UIAlertController(title: NSLocalizedString("Logout", comment: "Logout"), message: NSLocalizedString("Really Log Out?", comment: "Really Log Out?"), preferredStyle: .alert)
+        
+        // Logout button
+        let OKAction = UIAlertAction(title: NSLocalizedString("Logout", comment: "logout"), style: .default) { (action:UIAlertAction!) in
+            SyncUser.current?.logOut()
+            self.navigationController?.setViewControllers([TasksLoginViewController()], animated: true)
         }
-    })
-    present(alertController, animated: true, completion: nil)
-}
-This deletes two lines in the guard block that begin with self. and replaces them with a let and try! block which will actually write a new task to the Realm.
-
-Lastly, we need to allow non-TLS network requests to talk to our local sync server.
+        alert.addAction(OKAction)
+        
+        // Cancel button
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { (action:UIAlertAction!) in
+            print("Cancel button tapped");
+        }
+        alert.addAction(cancelAction)
+        
+        // Present Dialog message
+        present(alert, animated: true, completion:nil)
+    }
+Lastly, we need to allow non-TLS network requests to talk to our sync server.
 
 Right-click on the Info.plist file and select "Open as... Source Code" and paste the following in the <dict>section:
 
@@ -481,6 +431,7 @@ If you add new tasks by tapping the "Add" button in your app, you should immedia
 
 
 
+ 
 
 
 
@@ -489,77 +440,173 @@ Congratulations, you've built your first synced Realm app!
 Keep going if you'd like to see how easy it is to add more functionality and finish building your task management app.
 
 10. Support moving and deleting tasks
-Add the following right after the navItem.rightBarButtonItems like in your setupUI() function:
+Add the following right after these tableView overrides in your UITableView section:
 
-func setupUI() {
-    // ... existing function ...
-        navItem.leftBarButtonItem = editButtonItem
-    // ... existing function ...
-}
-This adds the Edit button to the navigation bar.
-
-Now, add these functions to the ViewController class body, right after the other tableView functions:
-
-override func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
-    try! items.realm?.write {
-        items.move(from: sourceIndexPath.row, to: destinationIndexPath.row)
-    }
-}
-
-override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
-    if editingStyle == .delete {
-          try! realm.write {
-              let item = items[indexPath.row]
-              realm.delete(item)
-          }
-    }
-}
-11. Support toggling the 'completed' state of a task by tapping it
-After the last tableView function in the ViewController class, add the following function override:
-
-override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-    let item = items[indexPath.row]
-    try! item.realm?.write {
-        item.completed = !item.completed
-        let destinationIndexPath: IndexPath
-        if item.completed {
-            // move cell to bottom
-            destinationIndexPath = IndexPath(row: items.count - 1, section: 0)
-        } else {
-            // move cell just above the first completed item
-            let completedCount = items.filter("completed = true").count
-            destinationIndexPath = IndexPath(row: items.count - completedCount - 1, section: 0)
+    override func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+        try! self.items?.realm?.write {
+            self.items?.move(from: sourceIndexPath.row, to: destinationIndexPath.row)
         }
-        items.move(from: indexPath.row, to: destinationIndexPath.row)
     }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            try! realm.write {
+                let item = self.items?[indexPath.row]
+                realm.delete(item!)
+            }
+        }
+    }
+
+11. Support toggling the 'completed' state of a task by tapping it
+After the last tableView function in the TasksTableViewController class, add the following function override:
+
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let item = items![indexPath.row]
+        try! item.realm?.write {
+            item.completed = !item.completed
+            let destinationIndexPath: IndexPath
+            if item.completed {
+                // move cell to bottom
+                destinationIndexPath = IndexPath(row: items!.count - 1, section: 0)
+            } else {
+                // move cell just above the first completed item
+                let completedCount = items!.filter("completed = true").count
+                destinationIndexPath = IndexPath(row: items!.count - completedCount - 1, section: 0)
+            }
+            self.items!.move(from: indexPath.row, to: destinationIndexPath.row)
+        }
+    }
+
+
+12. Spin up a Remote Realm Object Server and Connect your App
+Now let's launch a cloud instance on AWS EC2 and install Realm Object Server
+
+ 
+
+SSH to the EC2 install and use the following script to install ROS with all its dependencies
+
+curl -s https://raw.githubusercontent.com/realm/realm-object-server/master/install.sh | bash
+Once complete you then run:
+
+ ros init myROS
+Which will generate a template ROS folder - you can now step into that folder and run:
+
+npm install
+npm start
+Now edit the ConstantsAndModels.swift file in your XCode to connect to the new server
+
+13. Connect with Notifier Code
+Now back on your laptop create a new Javascript file in your favorite IDE in a folder of your choice with the below code:
+
+'use strict';
+
+var fs = require('fs');
+var Realm = require('realm');
+const {Wit, log} = require('node-wit');
+
+//TODO Generate an expiring token and add all todo 
+
+// Professional or Enterprise Edition access token
+var token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJSZWFsbSIsIk5vdGlmaWVyIjp0cnVlLCJTeW5jIjp0cnVlLCJpYXQiOjE1MTM5MDM0NDYsImV4cCI6MTUxNDUwODI0Nn0.G7yFCMrS66R44scHYRoLgRQYFrLYwjFo2NXgVzOEzkZ7xII37Va4G8XmhFM9fGazgpixIAYVvOO4p6AUmxwerS4K7YnnjNsNAQh1-C_rSQc7Dw6QAtN-rJO5z0BwfDkQOvKmxH69Cl397sg3GmmfLTSz6hG-LhwCzY0GWBjkHhmE30JN79CxwpdYvxaUQ2BlomT7BYnZ4tvxKmlaXlKoUKIrCIBhBvHG55VdtXuEDmX8lfE7ku2raqMYC1vO3bevZFU6D0FDTPb97KJXa9Rn-IEhqAj4Rh91NAxf2KaLCiPPS2LVc_YDgCb6XqYolNtczZ_eOAwfLxNTa9DglZW8kw";
+Realm.Sync.setFeatureToken(token);
+
+// Realm admin token
+//THIS INFORMATION WILL BE PROVIDED BY INSTRUCTOR
+var REALM_ADMIN_TOKEN = "INSERT_REALM_ADMIN_TOKEN";
+
+// Server access token from wit.ai API
+var WIT_ACCESS_TOKEN = "TXO5QPZWCCDN7WBWECGGJR7NS4PM7V63";
+
+// The URL to the Realm Object Server
+//format should be: 'realm://IP_ADDRESS:port'  like example below 
+// var SERVER_URL = 'realm://127.0.0.1:9080';
+var SERVER_URL = 'INSERT_SERVER_URL';
+
+//format should be: 'http://IP_ADDRESS:port')
+//var ADMIN_URL = 'http://127.0.0.1:9080';
+var ADMIN_URL = 'INSERT_ADMIN_URL';
+
+// The path used by the global notifier to listen for changes across all
+// Realms that match.
+// Find your user ID by using Realm Studio to browse for user info 
+var NOTIFIER_PATH = "/INSERT_USER_ID/realmtasks";
+
+const client = new Wit({accessToken: WIT_ACCESS_TOKEN})
+
+//enable debugging if needed 
+//Realm.Sync.setLogLevel('debug');
+
+const adminUser = Realm.Sync.User.adminUser(REALM_ADMIN_TOKEN, ADMIN_URL);
+
+//INSERT HANDLER HERE
+var change_notification_callback = function(changeEvent) {
+    const realm = changeEvent.realm;
+    const tasks = realm.objects('Task');
+
+    if (!changeEvent.changes.Task) {
+        return // don't do anything nothing changed
+    }
+
+    console.log('received change event');        
+
+    const taskInsertIndexes = changeEvent.changes.Task.insertions;
+    const taskModIndexes = changeEvent.changes.Task.modifications;
+    const taskDeleteIndexes = changeEvent.changes.Task.deletions;
+
+    for (var i = 0; i < taskInsertIndexes.length; i++) {
+        const task = tasks[taskInsertIndexes[i]];
+        if (task !== undefined) {
+            console.log('insertion occurred');
+            const client = new Wit({accessToken: WIT_ACCESS_TOKEN});
+            
+            client.message(task.text, {}).then((data) => {
+                console.log("Response received from wit: " + JSON.stringify(data));
+                if(data.entities.datetime){
+                    var dateTime = data.entities.datetime[0];
+                    if (!dateTime) {
+                        console.log("Couldn't find a date.");
+                        return;
+                    }
+                    console.log("Isolated calculated date: " + dateTime.value);
+                    
+                    realm.write(function() {
+                        console.log(dateTime.value);
+                        task.duedate = dateTime.value;
+                });
+                }
+                
+            }).catch(console.log);    
+        }
+    }
+
+    for (var i = 0; i < taskModIndexes.length; i++) {
+        const task = tasks[taskModIndexes[i]];
+        if (task !== undefined) {
+            console.log('modification occurred');
+        }
+    }
+    
+    //when task is deleted
+    for (var i = 0; i < taskDeleteIndexes.length; i++) {
+        const task = tasks[taskDeleteIndexes[i]];
+        if (task !== undefined) {
+            console.log('deletion occurred');
+        }
+    }
+
 }
-12. Adding a Logout Capabilities
-In this section we're going to add a logoout capability Add the following two methods to the bottom of the TaskViewController class
-
-// Logout Support
 
 
-@IBAction  func handleLogout(sender:AnyObject?) {
-    let alert = UIAlertController(title: NSLocalizedString("Logout", comment: "Logout"), message: NSLocalizedString("Really Log Out?", comment: "Really Log Out?"), preferredStyle: .alert)
+Realm.Sync.addListener(SERVER_URL, adminUser, NOTIFIER_PATH, 'change', change_notification_callback);
 
-    // Logout button
-    let OKAction = UIAlertAction(title: NSLocalizedString("Logout", comment: "logout"), style: .default) { (action:UIAlertAction!) in
-        SyncUser.current?.logOut()
-        //Now we need to segue to the login view controller
-        self.performSegue(withIdentifier: Constants.kExitToLoginViewSegue, sender: self)
-    }
-    alert.addAction(OKAction)
+console.log('listening');
 
-    // Cancel button
-    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { (action:UIAlertAction!) in
-        print("Cancel button tapped");
-    }
-    alert.addAction(cancelAction)
+Don't forget to run:
 
-    // Present Dialog message
-    present(alert, animated: true, completion:nil)
-}
-this code supports the logot button in the TaskTable View navigation controller and will log theuser out and take them back to the RealmLoginKit panel.
+npm install realm
+npm install node-wit
+Then your script with the appropriate fields filled in. You can find the userId by taking a look on Studio.
 
 
-13. You're done!```
+
+Congratulations!
